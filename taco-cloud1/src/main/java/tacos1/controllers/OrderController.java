@@ -20,7 +20,7 @@ import tacos1.entity.TacoOrder;
 public class OrderController {
     @GetMapping("/current")
     public String orderFrom(){
-        return "orderFrom";
+        return "orderForm";
     }
 
     @PostMapping
