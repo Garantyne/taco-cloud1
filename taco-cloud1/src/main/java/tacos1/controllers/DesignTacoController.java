@@ -1,17 +1,28 @@
 package tacos1.controllers;
 
-import lombok.extern.slf4j.Slf4j;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
+
+import jakarta.validation.Valid;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.validation.Errors;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.SessionAttributes;
+import lombok.extern.slf4j.Slf4j;
+
+import tacos1.Repository.IngredientRepository;
 import tacos1.entity.Ingredient;
+import tacos1.entity.Ingredient.Type;
 import tacos1.entity.Taco;
 import tacos1.entity.TacoOrder;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.stream.Collectors;
+
+
 
 @Slf4j
 @Controller
@@ -19,34 +30,24 @@ import java.util.stream.Collectors;
 @SessionAttributes("tacoOrder")
 public class DesignTacoController {
 
+    private final IngredientRepository ingredientRepository;
+
+    public DesignTacoController(IngredientRepository ingredientRepository){
+        this.ingredientRepository = ingredientRepository;
+    }
+
     @ModelAttribute
     public void addIngredientsToModel(Model model){
-        List<Ingredient> ingredients = Arrays.asList(
-                new Ingredient("FLTO", "Flour Tortilla", Ingredient.Type.WRAP),
-                new Ingredient("COTO", "Corn Tortilla", Ingredient.Type.WRAP),
-                new Ingredient("GRBF", "Ground Beef", Ingredient.Type.PROTEIN),
-                new Ingredient("CARN", "Carnitas", Ingredient.Type.PROTEIN),
-                new Ingredient("TMTO", "Diced Tomatoes", Ingredient.Type.VEGGIES),
-                new Ingredient("LETC", "Lettuce", Ingredient.Type.VEGGIES),
-                new Ingredient("CHED", "Cheddar", Ingredient.Type.CHEESE),
-                new Ingredient("JACK", "Monterrey Jack", Ingredient.Type.CHEESE),
-                new Ingredient("SLSA", "Salsa", Ingredient.Type.SAUCE),
-                new Ingredient("SRCR", "Sour Cream", Ingredient.Type.SAUCE)
-        );
-        Ingredient.Type[] types = Ingredient.Type.values();
+        Iterable<Ingredient> ingredients = ingredientRepository.findAll();
+
+        Type[] types = Ingredient.Type.values();
         for(Ingredient.Type type : types){
-            model.addAttribute(type.toString().toLowerCase(),
-                    filterByType(ingredients,type));
+            model.addAttribute(
+                type.toString().toLowerCase(),
+                filterByType(ingredients,type)
+            );
         }
     }
-
-    @PostMapping
-    public String processTaco(Taco taco, @ModelAttribute TacoOrder tacoOrder){
-        tacoOrder.addTaco(taco);
-        log.info("Processing taco: {}", taco);
-        return "redirect:/orders/current";
-    }
-
     @ModelAttribute(name = "tacoOrder")
     public TacoOrder order(){
         return new TacoOrder();
@@ -56,6 +57,21 @@ public class DesignTacoController {
     public Taco taco(){
         return new Taco();
     }
+    //то что мы отправим через пост метод будет обработано тут и после обработки перенаправит нас по указанному адресу
+    //и эта аннотация сообщает Реквест маппингу который на уровне класса, что будет пост методы обрабатывать по тмоу же пути
+    // что и в реквест маппинге
+    @PostMapping
+    public String processTaco(@Valid Taco taco,
+                              Errors errors,
+                              @ModelAttribute TacoOrder tacoOrder){
+        //System.out.println("ОШИБКА!!!!!" + taco.toString()) ;
+        if(errors.hasErrors()){
+            return "design";
+        }
+        tacoOrder.addTaco(taco);
+        //log.info("Processing taco: {}", taco);
+        return "redirect:/orders/current";
+    }
 
     @GetMapping
     public String showDesignForm(){
@@ -63,8 +79,11 @@ public class DesignTacoController {
     }
 
     private Iterable<Ingredient> filterByType(
-            List<Ingredient> ingredients, Ingredient.Type type
-    ){
+            Iterable<Ingredient> ingr,
+            Type type){
+        List<Ingredient> ingredients;
+        ingredients = StreamSupport.stream(ingr.spliterator(), false)
+                .collect(Collectors.toList());
         return ingredients.stream()
                 .filter(x->x.getType().equals(type))
                 .collect(Collectors.toList());
