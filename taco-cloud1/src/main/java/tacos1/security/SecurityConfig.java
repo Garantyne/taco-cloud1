@@ -4,10 +4,13 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 import tacos1.Repository.UserRepository;
 
@@ -22,7 +25,7 @@ public class SecurityConfig {
     }
 
     //этот метод смотрит что бы пользователь который хочет авторизоваться был в базе данных
-    @Bean
+     @Bean
     public UserDetailsService userDetailsService(UserRepository userRepo) {
         return username -> {
             tacos1.entity.User user = userRepo.findByUsername(username);
@@ -48,6 +51,28 @@ public class SecurityConfig {
                     ); // Разрешаем выход всем
             return http.build();
         }
+    /*
+    @Bean
+   public UserDetailsService userDetailsService() {
+        // ЗАГЛУШКА (ПОЗЖЕ ВМЕСТО ЭТОГО БУДЕТ DbUserDetailsService)
+//        // сконфигурируем пользователей и доступы в контексте ОЗУ
+//        // 1. создадим пользователя
+        UserDetails user = User.builder()
+                .username("user")
+                .password("qwerty")
+                .roles("USER")
+                .passwordEncoder(passwordEncoder()::encode)
+                .build();
+        // 2. создадим админка
+        UserDetails admin = User.builder()
+                .username("admin")
+                .password("qwerty")
+                .roles("ADMIN")
+                .passwordEncoder(passwordEncoder()::encode)
+                .build();
+        // ...
+        return new InMemoryUserDetailsManager(user, admin);
+    }
 /*
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
